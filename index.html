@@ -1,0 +1,17 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="canvas" width="1000px" height="1000px"></canvas>
+        <script>
+            const canvas = document.getElementById('canvas')
+            const context = canvas.getContext("2d");
+            setInterval(function() {
+                const newImage = new Image()
+                newImage.onload = function() {
+                    context.drawImage(newImage, 0, 0)
+                }
+                newImage.src = './images/temp.svg?rand=' + Date.now()
+            }, 50)
+        </script>
+    </body>
+</html>

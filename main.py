@@ -1,68 +1,129 @@
 from shell import ShellThread
-import cairosvg
-import pygame
-import queue
-import threading
 import chess
 import chess.svg
+import webbrowser
+import os
+import random
 
-TEMP_PNG_PATH = './images/temp.png'
 TEMP_SVG_PATH = './images/temp.svg'
-WIDTH, HEIGHT = (512, 512)
-
-msg_queue = queue.Queue()
-
-shared = {
-    "running": True,
-    "queue": msg_queue
-}
-
-def pygame_load_svg(url=TEMP_SVG_PATH):
-    cairosvg.svg2png(url=url, write_to=TEMP_PNG_PATH)
-    return pygame.image.load(TEMP_PNG_PATH)
 
 def save_svg(board, url=TEMP_SVG_PATH):
     with open(TEMP_SVG_PATH, 'w') as f:
         f.write(chess.svg.board(board=board))
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+# webbrowser.open('file://' + os.path.realpath('index.html'))
 
-shell_thread = ShellThread(shared)
-shell_thread.start()
-
-board = chess.Board()
-save_svg(board)
-
-# init screen
-image = pygame_load_svg(TEMP_SVG_PATH)
-screen.blit(image, (0,0))
-pygame.display.flip()
-
-def perform_move(board: chess.Board, move):
+def try_move(board: chess.Board, move):
     try:
         board.push(board.parse_san(move))
+        return True
     except:
-        print('invalid move: (')
+        return False
 
-def update_chess_image(screen, board):
+board = chess.Board()
+def update():
     save_svg(board)
-    image = pygame_load_svg()
-    screen.fill((0,0,0))
-    screen.blit(image, (0,0))
-    pygame.display.flip()
+update()
+running = True
 
+piece_values = {
+    chess.PAWN: 1,
+    chess.KNIGHT: 3,
+    chess.BISHOP: 3,
+    chess.ROOK: 5,
+    chess.QUEEN: 9,
+    chess.KING: 10
+}
 
-clock = pygame.time.Clock()
-while shared["running"]:
-    clock.tick(15)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            shared["running"] = False
-    while not msg_queue.empty():
-        perform_move(board, msg_queue.get())
-        update_chess_image(screen, board)
-        if board.is_game_over():
-            print('You win! (or lose)')
+def static_evaluation(board):
+    evaluation = 0
+    for square, piece in board.piece_map().items():
+        multiplier = 1 if piece.color == chess.WHITE else -1
+
+        value = piece_values[piece.piece_type]
+        evaluation += multiplier * value
+        if piece.piece_type == chess.PAWN and square in [chess.D5, chess. D4, chess.E4, chess.E5]:
+            evaluation += multiplier * .1
+    return evaluation
+
+# class Node:
+#     def __init__(self, score):
+#         self.score = 0
+#         self.children = []
+
+result_values = {
+    "1-0": float('inf'),
+    "0-1": float('-inf'),
+    "1/2-1/2": 0,
+    "*": 0,
+}
+
+def negamax_r(depth=3):
+    # print(depth)
+    multiplier = 1 if board.turn == chess.WHITE else -1
+    
+    if board.is_game_over():
+        return result_values[board.result()]
         
-pygame.quit()
-pygame.display.quit()
+    if depth == 0:
+        return static_evaluation(board) * multiplier
+
+    best = float('-inf')
+    for move in board.legal_moves:
+        board.push(move)
+        score = -negamax_r(depth-1)
+        best = max(score, best)
+        board.pop()
+    
+    return best
+    
+def negamax(depth=3):
+    multiplier = 1 if board.turn == chess.WHITE else -1
+    
+    if board.is_game_over():
+        return result_values[board.result()]
+        
+    if depth == 0:
+        return static_evaluation(board) * multiplier
+
+    best = (None, float('-inf'))
+    for move in board.legal_moves:
+        # print('move')
+        board.push(move)
+        score = -negamax_r(depth-1)
+        if score > best[1]:
+            best = (move, score)
+        board.pop()
+        print(move, score)
+    
+    return best[0]
+
+
+def best_move(board: chess.Board):
+    best = (None, float('-inf'))
+    for move in board.legal_moves:
+        board.push(move)
+        evaluation = static_evaluation(board)
+        if board.turn == chess.WHITE:
+            evaluation *= -1
+        if evaluation > best[1]:
+            best = (move, evaluation)
+        board.pop()
+    return best[0]
+    
+while running:
+    user_input = input('> ')
+    if not try_move(board, user_input):
+        print('invalid move :(')
+        continue
+    else:
+        update()
+    if board.is_game_over():
+        print('You win! (or lose)')
+        print(board.result())
+        break
+    move = negamax(3)
+    print('      ' + str(move))
+    board.push(move)
+    update()
+    print(board.promoted)
