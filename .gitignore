@@ -130,3 +130,6 @@ dmypy.json
 
 # images
 images/*
+
+# vscode
+.vscode/
