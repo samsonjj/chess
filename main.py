@@ -4,6 +4,7 @@ import chess.svg
 import webbrowser
 import os
 import random
+from flask import Flask, send_from_directory
 
 TEMP_SVG_PATH = './images/temp.svg'
 
@@ -11,7 +12,7 @@ def save_svg(board, url=TEMP_SVG_PATH):
     with open(TEMP_SVG_PATH, 'w') as f:
         f.write(chess.svg.board(board=board))
 
-# webbrowser.open('file://' + os.path.realpath('index.html'))
+webbrowser.open('file://' + os.path.realpath('index.html'))
 
 def try_move(board: chess.Board, move):
     try:
@@ -23,8 +24,6 @@ def try_move(board: chess.Board, move):
 board = chess.Board()
 def update():
     save_svg(board)
-update()
-running = True
 
 piece_values = {
     chess.PAWN: 1,
@@ -111,19 +110,33 @@ def best_move(board: chess.Board):
         board.pop()
     return best[0]
     
-while running:
-    user_input = input('> ')
-    if not try_move(board, user_input):
-        print('invalid move :(')
-        continue
-    else:
-        update()
-    if board.is_game_over():
-        print('You win! (or lose)')
-        print(board.result())
-        break
-    move = negamax(3)
-    print('      ' + str(move))
-    board.push(move)
+
+# def server():
+#     app = Flask(__name__)
+
+#     @app.get("image")
+#     def get_image():
+#         return send_from_directory('./images/temp.svg')
+
+
+if __name__ == "__main__":
     update()
-    print(board.promoted)
+    running = True
+    while running:
+        user_input = input('> ')
+        if not try_move(board, user_input):
+            print('invalid move :(')
+            continue
+        else:
+            update()
+        if board.is_game_over():
+            print('You win! (or lose)')
+            print(board.result())
+            break
+        move = negamax(3)
+        print('      ' + str(move))
+        board.push(move)
+        update()
+        print(board.promoted)
+
+
