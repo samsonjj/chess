@@ -4,7 +4,8 @@ import chess.svg
 import webbrowser
 import os
 import random
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, abort, request, Response
+from flask_cors import CORS
 
 TEMP_SVG_PATH = './images/temp.svg'
 
@@ -12,7 +13,6 @@ def save_svg(board, url=TEMP_SVG_PATH):
     with open(TEMP_SVG_PATH, 'w') as f:
         f.write(chess.svg.board(board=board))
 
-webbrowser.open('file://' + os.path.realpath('index.html'))
 
 def try_move(board: chess.Board, move):
     try:
@@ -87,7 +87,6 @@ def negamax(depth=3):
 
     best = (None, float('-inf'))
     for move in board.legal_moves:
-        # print('move')
         board.push(move)
         score = -negamax_r(depth-1)
         if score > best[1]:
@@ -111,16 +110,35 @@ def best_move(board: chess.Board):
     return best[0]
     
 
-# def server():
-#     app = Flask(__name__)
+app = Flask(__name__)
+CORS(app)
 
-#     @app.get("image")
-#     def get_image():
-#         return send_from_directory('./images/temp.svg')
+@app.get("/image")
+def get_image():
+    try:
+        return send_from_directory('./images', 'temp.svg')
+    except FileNotFoundError:
+        abort(404)
 
+@app.post("/move")
+def send_move():
+    print(request.json)
+    if not try_move(board, request.json["move"]):
+        return Response(status=400)
+    else:
+        update()
+        if not board.is_game_over():
+            board.push(negamax(3)) 
+            update()
+        return Response(status=201)
+    
+webbrowser.open('file://' + os.path.realpath('index.html'))
+update()
 
 if __name__ == "__main__":
+    pass
     update()
+    webbrowser.open('file://' + os.path.realpath('index.html'))
     running = True
     while running:
         user_input = input('> ')
@@ -138,5 +156,3 @@ if __name__ == "__main__":
         board.push(move)
         update()
         print(board.promoted)
-
-

@@ -3,9 +3,42 @@
     <body>
 	    <!-- <canvas id="canvas" width="1000px" height="1000px"></canvas>-->
 	<img id="chessImage" src="./images/temp.svg">
+    <form id="user-input-form" action="http://localhost/move">
+        <label for="move">User Input</label>
+        <input type="text" id="move-input" name="move">
+    </form>
     <script>
-	    image = document.getElementById('chessImage')
-        setInterval(() => image.src = './images/temp.svg?rand=' + Date.now(), 500)
+        urlPath = (path) => `http://localhost:5000${path}`;
+
+        function reloadImage() {
+            fetch(urlPath('/image'))
+                .then(response => response.blob())
+                .then((blob) => {
+                    imageUrl = window.URL.createObjectURL(blob);
+                    image.src = imageUrl
+                })
+            image.src = './images/temp.svg?rand=' + Date.now()
+        }
+
+        form = document.getElementById("user-input-form");
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            input = document.getElementById("move-input")
+            moveText = input.value;
+            input.value = '';
+            fetch(urlPath('/move'), {
+                headers: { "Content-Type": "application/json" },
+                method: 'POST',
+                body: JSON.stringify({
+                    move: moveText
+                })
+            })
+                .then(response => reloadImage());
+        });
+
+	    image = document.getElementById('chessImage');
+
+        setInterval(reloadImage, 500);
 	</script>
     </body>
 </html>

@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 chess = "*"
 flask = "*"
+flask-cors = "*"
 
 [dev-packages]
 pylint = "*"
