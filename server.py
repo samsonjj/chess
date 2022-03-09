@@ -3,6 +3,9 @@ import os
 from flask import Flask, send_from_directory, abort, request, Response
 from flask_cors import CORS
 from mychess import try_move, negamax, board, update
+import cProfile
+
+DEPTH = os.getenv('DEPTH', 3)
 
 app = Flask(__name__)
 CORS(app)
@@ -21,7 +24,10 @@ def send_move():
     else:
         update()
         if not board.is_game_over():
-            board.push(negamax(3)) 
+            if os.getenv('ENABLE_PROFILER'):
+                cProfile.runctx(f'board.push(negamax({DEPTH}))', globals(), locals())
+            else:
+                board.push(negamax(DEPTH))
             update()
         return Response(status=201)
     

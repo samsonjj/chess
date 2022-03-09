@@ -1,7 +1,9 @@
 from shell import ShellThread
 from pprint import pprint
+from gmpy import scan1, setbit
 import chess
 import chess.svg
+import time
 
 TEMP_SVG_PATH = './images/temp.svg'
 
@@ -102,13 +104,15 @@ for piece, table in pst.items():
 
 def static_evaluation(board: chess.Board):
     evaluation = 0
-    for square, piece in board.piece_map().items():
-        multiplier = 1 if piece.color == chess.WHITE else -1
-
-        value = piece_values[piece.piece_type]
-        evaluation += multiplier * value
-        evaluation += multiplier * pst2[piece.color][piece.piece_type][square]
-
+    for color in chess.COLORS:
+        multiplier = 1 if color == chess.WHITE else -1
+        for piece_type in chess.PIECE_TYPES:
+            bb = board.pieces_mask(piece_type, color)
+            while bb != 0:
+                square = scan1(bb)
+                bb = setbit(bb, square, 0)
+                value = piece_values[piece_type]
+                evaluation += multiplier * (value + pst2[color][piece_type][square])
     return evaluation
 
 result_values = {
@@ -118,43 +122,57 @@ result_values = {
     "*": 0,
 }
 
+node_count = 0
+
 def negamax_r(depth=3):
+    global node_count
+    node_count += 1
     multiplier = 1 if board.turn == chess.WHITE else -1
     
-    if board.is_game_over():
-        return result_values[board.result()]
-        
     if depth == 0:
         return static_evaluation(board) * multiplier
 
     best = float('-inf')
+    over = True
     for move in board.legal_moves:
+        over = False
         board.push(move)
         score = -negamax_r(depth-1)
         best = max(score, best)
         board.pop()
+
+    if over:
+        return result_values[board.result()]
     
     return best
     
 def negamax(depth=3):
+    global node_count
+    start_time = time.time()
+    start_nodes = node_count
+    node_count += 1
     multiplier = 1 if board.turn == chess.WHITE else -1
     
-    if board.is_game_over():
-        return result_values[board.result()]
-        
     if depth == 0:
         return static_evaluation(board) * multiplier
 
     best = (None, float('-inf'))
+    over = True
     for move in board.legal_moves:
+        over = False
         board.push(move)
         score = -negamax_r(depth-1)
         if score > best[1]:
             best = (move, score)
         board.pop()
         print(move, score)
+
+    if over:
+        return result_values[board.result()]
     
+    print('nps:', (node_count - start_nodes) / (time.time() - start_time))
     return best[0]
+
 
 # https://en.wikipedia.org/wiki/Principal_variation_search
 def pvs():

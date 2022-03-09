@@ -3,7 +3,7 @@ import cairosvg
 import pygame
 import queue
 import threading
-import chess
+import mychess
 import chess.svg
 import random
 import webbrowser
@@ -26,7 +26,7 @@ shared = {
 
 def save_svg(board, url=TEMP_SVG_PATH):
     with open(TEMP_SVG_PATH, 'w') as f:
-        f.write(chess.svg.board(board=board))
+        f.write(mychess.svg.board(board=board))
 
 # webbrowser.open('file://' + os.path.realpath('index.html'))
 
@@ -43,7 +43,7 @@ def save_svg(board, url=TEMP_SVG_PATH):
 # screen.blit(image, (0,0))
 # pygame.display.flip()
 
-def try_move(board: chess.Board, move):
+def try_move(board: mychess.Board, move):
     try:
         board.push(board.parse_san(move))
         return True
