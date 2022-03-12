@@ -5,7 +5,7 @@ from flask_cors import CORS
 from mychess import try_move, negamax, board, update
 import cProfile
 
-DEPTH = os.getenv('DEPTH', 3)
+DEPTH = int(os.getenv('DEPTH', 3))
 
 app = Flask(__name__)
 CORS(app)

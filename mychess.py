@@ -4,6 +4,7 @@ from gmpy import scan1, setbit
 import chess
 import chess.svg
 import time
+import os
 
 TEMP_SVG_PATH = './images/temp.svg'
 
@@ -124,7 +125,7 @@ result_values = {
 
 node_count = 0
 
-def negamax_r(depth=3):
+def negamax_r(depth, alpha, beta):
     global node_count
     node_count += 1
     multiplier = 1 if board.turn == chess.WHITE else -1
@@ -137,9 +138,11 @@ def negamax_r(depth=3):
     for move in board.legal_moves:
         over = False
         board.push(move)
-        score = -negamax_r(depth-1)
-        best = max(score, best)
+        best = max(best, -negamax_r(depth-1, -beta, -alpha))
         board.pop()
+        alpha = max(alpha, best)
+        if alpha >= beta:
+            break
 
     if over:
         return result_values[board.result()]
@@ -152,24 +155,31 @@ def negamax(depth=3):
     start_nodes = node_count
     node_count += 1
     multiplier = 1 if board.turn == chess.WHITE else -1
+
+    alpha = float('-inf')
+    beta = float('+inf')
     
     if depth == 0:
         return static_evaluation(board) * multiplier
 
     best = (None, float('-inf'))
     over = True
+
     for move in board.legal_moves:
         over = False
         board.push(move)
-        score = -negamax_r(depth-1)
+        score = -negamax_r(depth-1, -beta, -alpha)
         if score > best[1]:
             best = (move, score)
         board.pop()
+        alpha = max(alpha, best[1])
+        if alpha >= beta:
+            break
         print(move, score)
 
     if over:
         return result_values[board.result()]
-    
+    print('nodes:', node_count - start_nodes)
     print('nps:', (node_count - start_nodes) / (time.time() - start_time))
     return best[0]
 
